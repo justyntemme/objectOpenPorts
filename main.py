@@ -15,6 +15,18 @@ TL_URL = os.environ.get("TL_URL")
 RATE_LIMIT = 30  # requests
 RATE_LIMIT_PERIOD = 30  # seconds
 
+def configure_logging(debug: bool):
+    if debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.debug("Debug logging is enabled.")
+        logging.captureWarnings(True)
+        urllib3_logger = logging.getLogger("urllib3")
+        urllib3_logger.setLevel(logging.DEBUG)
+    else:
+        urllib3_logger = logging.getLogger("urllib3")
+        urllib3_logger.setLevel(logging.ERROR)  # Suppress urllib3 warnings when not in debug mode
+        warnings.filterwarnings("ignore", category=urllib3.exceptions.InsecureRequestWarning)
+
 
 def get_containers_and_networks(token: str, limit: int = 100) -> Tuple[int, str]:
     if TL_URL is None:
@@ -181,17 +193,7 @@ def main():
     parser.add_argument('--debug', action='store_true', help="Show debug messages.")
     args = parser.parse_args()
 
-    # Set logging level based on the --debug flag
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-        logging.debug("Debug logging is enabled.")
-        # Redirect warnings to the logging system
-        logging.captureWarnings(True)
-        urllib3_logger = logging.getLogger("urllib3")
-        urllib3_logger.setLevel(logging.DEBUG)
-    else:
-        urllib3_logger = logging.getLogger("urllib3")
-        urllib3_logger.setLevel(logging.ERROR)  # Suppress urllib3 warnings when not in debug mode
+    configure_logging(args.debug)
 
     P: Tuple[str, str, str] = ("PC_IDENTITY", "PC_SECRET", "TL_URL")
     accessKey, accessSecret, _ = map(check_param, P)
