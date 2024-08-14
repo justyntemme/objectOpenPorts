@@ -2,12 +2,13 @@ import json
 import logging
 import os
 import time
+import argparse
+import warnings
 from typing import Tuple, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
-
-logging.basicConfig(level=logging.INFO)  # Enable info-level logging for concise output
+import urllib3
 
 # Global Variables
 TL_URL = os.environ.get("TL_URL")
@@ -87,14 +88,13 @@ def extract_network_info(container: Dict[str, Any]) -> Dict[str, Any]:
     network = container.get('network', {})
     network_ports = network.get('ports', [])
     for port in network_ports:
-        if port.get('listening', False):
-            open_ports.append({
-                'port': port.get('container'),
-                'host_port': port.get('host'),
-                'host_ip': port.get('hostIP'),
-                'nat': port.get('nat'),
-                'type': 'network'
-            })
+        open_ports.append({
+            'port': port.get('container'),
+            'host_port': port.get('host'),
+            'host_ip': port.get('hostIP'),
+            'nat': port.get('nat'),
+            'type': 'network'
+        })
 
     # Extract ports from `networkSettings` object
     network_settings = container.get('networkSettings', {})
@@ -161,7 +161,7 @@ def generate_cwp_token(accessKey: str, accessSecret: str) -> Tuple[int, str]:
         logging.info("Token acquired")
         return 200, data["token"]
     else:
-        logging.error("Unable to acquire token with error code: %s", response.status_code)
+        logging.warning(f"Unable to acquire token with error code: {response.status_code}")
         return response.status_code, ""
 
 
@@ -174,6 +174,25 @@ def check_param(param_name: str) -> str:
 
 
 def main():
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description="Fetch and display container network information. Use --debug to show debug messages."
+    )
+    parser.add_argument('--debug', action='store_true', help="Show debug messages.")
+    args = parser.parse_args()
+
+    # Set logging level based on the --debug flag
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.debug("Debug logging is enabled.")
+        # Redirect warnings to the logging system
+        logging.captureWarnings(True)
+        urllib3_logger = logging.getLogger("urllib3")
+        urllib3_logger.setLevel(logging.DEBUG)
+    else:
+        urllib3_logger = logging.getLogger("urllib3")
+        urllib3_logger.setLevel(logging.ERROR)  # Suppress urllib3 warnings when not in debug mode
+
     P: Tuple[str, str, str] = ("PC_IDENTITY", "PC_SECRET", "TL_URL")
     accessKey, accessSecret, _ = map(check_param, P)
     response_code, cwp_token = (
@@ -188,7 +207,8 @@ def main():
     if response_code == 200:
         containers_info = json.loads(content)
         for entry in containers_info:
-            logging.info(json.dumps(entry, indent=2))
+            if entry:  # Check if the entry is not empty
+                print(json.dumps(entry, indent=2))  # Use print for output
     else:
         logging.error(f"Failed to get container details with response code: {response_code}")
 
