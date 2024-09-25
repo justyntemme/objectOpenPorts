@@ -9,3 +9,4 @@ go run main.go
 
 ### TODO
 Add support for hosts alongside containers, currently only supports container
+Add support for csv output
