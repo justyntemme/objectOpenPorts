@@ -32,9 +32,9 @@ func init() {
 	flag.BoolVar(&debug, "debug", false, "show debug messages")
 	flag.Parse()
 
-	tlURL = os.Getenv("TL_URL")
+	tlURL = os.Getenv("tlUrl")
 	if tlURL == "" {
-		log.Fatal("Missing TL_URL environment variable")
+		log.Fatal("Missing tlUrl environment variable")
 	}
 
 	if debug {
@@ -43,8 +43,8 @@ func init() {
 }
 
 func main() {
-	pcIdentity := mustGetEnv("PC_IDENTITY")
-	pcSecret := mustGetEnv("PC_SECRET")
+	pcIdentity := mustGetEnv("pcIdentity")
+	pcSecret := mustGetEnv("pcSecret")
 
 	statusCode, cwpToken := generateCwpToken(pcIdentity, pcSecret)
 	if statusCode != http.StatusOK || cwpToken == "" {
@@ -145,7 +145,7 @@ func outputter() {
 		fmt.Println(string(output))
 	}
 }
-
+//TODO add support for hosts alongside container support
 func getContainers(token string, offset, limit int) (int, []byte) {
 	containersURL := fmt.Sprintf("%s/api/v1/containers?offset=%d&limit=%d", tlURL, offset, limit)
 
