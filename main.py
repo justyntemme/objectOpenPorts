@@ -15,7 +15,7 @@ import urllib3
 # Global Variables
 TL_URL = os.environ.get("TL_URL")
 RATE_LIMIT = 30  # requests
-RATE_LIMIT_PERIOD = 30  # seconds
+RATE_LIMIT_PERIOD = 31  # seconds
 WORKER_THREADS = 6  # Number of worker threads for processing
 
 request_queue = Queue()
@@ -123,6 +123,12 @@ def get_containers(token: str, offset: int = 0, limit: int = 100) -> Tuple[int, 
     response = requests.get(
         containers_url, headers=headers, params=params, timeout=60, verify=False
     )
+    if response.status_code == 401:
+        time.sleep(100)
+        print("recieved 401, sleeping for 1 second and then re-trying")
+        response = requests.get(
+            containers_url, headers=headers, params=params, timeout=60, verify=False
+        )
     return response.status_code, response.text
 
 
